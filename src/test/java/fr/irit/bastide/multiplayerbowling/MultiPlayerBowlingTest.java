@@ -1,89 +1,106 @@
 package fr.irit.bastide.multiplayerbowling;
 
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class MultiPlayerBowlingTest {
-	private MultiPlayerBowling multiGame;
+class MultiPlayerBowlingTest {
+	private PartieMultiJoueurs multiGame;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
-		multiGame = new MultiPlayerBowling();
+		multiGame = new PartieMultiJoueurs();
 	}
 
 	@Test
-	public void testRookieVersusChampion() throws Exception {
+	void testRookieVersusChampion() {
 		String[] playerNames = {"Rookie", "Champion"};
-		multiGame.startNewGame(playerNames);
+		multiGame.demarreNouvellePartie(playerNames);
 		for (int tour = 0; tour < 10; tour ++) {
 			// Le rookie fait deux rigoles
-			multiGame.lancer(0);			
-			multiGame.lancer(0);			
+			multiGame.enregistreLancer(0);			
+			multiGame.enregistreLancer(0);			
 			// Le champion fait un strike
-			multiGame.lancer(10);
+			multiGame.enregistreLancer(10);
 		}
 		// Le champion a droit à deux boules de plus
-		multiGame.lancer(10);
-		multiGame.lancer(10);	
-		assertEquals(  0, multiGame.scoreFor("Rookie"));
-		assertEquals(300, multiGame.scoreFor("Champion"));
+		multiGame.enregistreLancer(10);
+		multiGame.enregistreLancer(10);	
+		assertEquals(  0, multiGame.scorePour("Rookie"),
+				"Le rookie n'a fait que des rigoles, score 0");
+		assertEquals(300, multiGame.scorePour("Champion"),
+				"Le champion n'a fait que des strikes, score 300");
 	}
         
-	@Test (expected = Exception.class)
-	public void needOnePlayer() throws Exception {
+	@Test 
+	void needOnePlayer() throws Exception {
 		String[] playerNames = {};
-		String result = multiGame.startNewGame(playerNames);
+		assertThrows(IllegalArgumentException.class, 
+		()-> multiGame.demarreNouvellePartie(playerNames),
+		"Une partie doit avoir au moins un joueur");
 	}
 
 	@Test
-	public void goodStartMessage() throws Exception {
+	void goodStartMessage()  {
 		String[] playerNames = {"Zorglub", "Albator"};
-		String result = multiGame.startNewGame(playerNames);
+		String result = multiGame.demarreNouvellePartie(playerNames);
 		assertEquals("Prochain tir : joueur Zorglub, tour n° 1, boule n° 1", result);
 	}
 	
 	@Test
-	public void testLancerStrike() throws Exception {
+	void testenregistreLancerStrike() {
 		String[] playerNames = {"Zorglub", "Albator"};
-		multiGame.startNewGame(playerNames);
+		multiGame.demarreNouvellePartie(playerNames);
 		String result = rollStrike();
 		assertEquals("Prochain tir : joueur Albator, tour n° 1, boule n° 1", result);
 	}
 
-	@Test( expected = Exception.class )
-	public void testGameFinishes() throws Exception {
+	@Test
+	void unLancerDeTropLeveException() {
 		String[] playerNames = {"Zorglub", "Albator"};
-		multiGame.startNewGame(playerNames);
+		multiGame.demarreNouvellePartie(playerNames);
+		// Tout dans la rigole : n joueurs * 10 tours * 2 boules par tour
+		rollMany(playerNames.length * 10 * 2, 0);
+		// Un enregistreLancer de trop doit lever une exception
+		assertThrows(IllegalStateException.class, 
+			()-> multiGame.enregistreLancer(0),
+			"La partie est terminée, on ne peut plus lancer de boule");
+	}
+
+	@Test
+	void testGameFinishes() {
+		String[] playerNames = {"Zorglub", "Albator"};
+		multiGame.demarreNouvellePartie(playerNames);
 		// Tout dans la rigole : n joueurs * 10 tours * 2 boules par tour
 		String message = rollMany(playerNames.length * 10 * 2, 0);
 		assertEquals("Partie terminée", message);
-		// Un lancer de trop doit lever une exception
-		multiGame.lancer(0);
 	}
 	
-	@Test( expected = Exception.class )
-	public void scoreForUnknownPlayer() throws Exception {
+	@Test
+	void scoreForUnknownPlayer() throws Exception {
 		String[] playerNames = {"Zorglub", "Albator"};
-		multiGame.startNewGame(playerNames);
-		int score = multiGame.scoreFor("Unknown");
+		multiGame.demarreNouvellePartie(playerNames);
+		assertThrows(IllegalArgumentException.class, 
+			()-> multiGame.scorePour("Unknown"),
+			"Le joueur Unknown n'existe pas");
 	}
 
 	// Quelques methodes utilitaires pour faciliter l'écriture des tests
-	private String rollMany(int n, int pins) throws Exception {
+	private String rollMany(int n, int pins) {
 		String result = "";
 		for (int i = 0; i < n; i++) {
-			result= multiGame.lancer(pins);
+			result= multiGame.enregistreLancer(pins);
 		}
 		return result;
 	}
 
-	private String rollSpare() throws Exception {
-		multiGame.lancer(7);
-		return multiGame.lancer(3);
+	private String rollSpare() {
+		multiGame.enregistreLancer(7);
+		return multiGame.enregistreLancer(3);
 	}
 
-	private String rollStrike() throws Exception {
-		return multiGame.lancer(10);
+	private String rollStrike() {
+		return multiGame.enregistreLancer(10);
 	}	
 }
